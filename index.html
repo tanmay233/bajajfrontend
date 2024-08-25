@@ -1,0 +1,217 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>21BSA10013</title>
+    <style>
+      body {
+        font-family: Arial, sans-serif;
+        margin: 0;
+        padding: 0;
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        height: 100vh;
+        background-color: #f0f0f0;
+      }
+      .container {
+        text-align: center;
+        width: 50%;
+        background-color: #fff;
+        padding: 20px;
+        border-radius: 8px;
+        box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+      }
+      #json-input {
+        width: 100%;
+        height: 100px;
+        padding: 10px;
+        border-radius: 5px;
+        border: 1px solid #ccc;
+      }
+      #submit-btn {
+        width: 100%;
+        background-color: cyan; /* Solid cyan blue color */
+        color: black; /* Text color black */
+        border: none;
+        padding: 10px;
+        font-size: 16px;
+        cursor: pointer;
+        text-align: center;
+      }
+      #submit-btn:hover {
+        background: linear-gradient(90deg, #0072ff, #00c6ff);
+      }
+      #dropdown-container {
+        margin-top: 20px;
+        display: none;
+      }
+      #filter-dropdown {
+        width: 100%;
+        padding: 10px;
+        border-radius: 5px;
+        border: 1px solid #ccc;
+      }
+      #result {
+        margin-top: 20px;
+        padding: 10px;
+        background-color: #e7f3ff;
+        border-radius: 5px;
+        border: 1px solid #0072ff;
+      }
+      #error-message {
+        color: red;
+        margin-top: 10px;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="container">
+      <h1>JSON Filter Application</h1>
+      <label for="json-input">Enter JSON:</label>
+      <textarea
+        id="json-input"
+        placeholder='{"data": ["A", "C", "z", "1", "2", "b"]}'
+      ></textarea>
+      <button id="submit-btn" onclick="submitJson()">Submit</button>
+      <div id="error-message"></div>
+
+      <div id="dropdown-container">
+        <label for="filter-dropdown">Select filters:</label>
+        <select id="filter-dropdown" multiple onchange="filterResults()">
+          <option value="numbers">Numbers</option>
+          <option value="alphabets">Alphabets</option>
+          <option value="highest_lowercase_alphabet">
+            Highest Lowercase Alphabet
+          </option>
+        </select>
+      </div>
+
+      <div id="result"></div>
+    </div>
+    <script type="module">
+      // Import the functions you need from the SDKs you need
+
+      import { initializeApp } from "https://www.gstatic.com/firebasejs/10.13.0/firebase-app.js";
+
+      import { getAnalytics } from "https://www.gstatic.com/firebasejs/10.13.0/firebase-analytics.js";
+
+      // TODO: Add SDKs for Firebase products that you want to use
+
+      // https://firebase.google.com/docs/web/setup#available-libraries
+
+      // Your web app's Firebase configuration
+
+      // For Firebase JS SDK v7.20.0 and later, measurementId is optional
+
+      const firebaseConfig = {
+        apiKey: "AIzaSyCE1Poibxn-nVh_s6QcEhwZv4cnkOKS9TQ",
+
+        authDomain: "bajajfinservproject.firebaseapp.com",
+
+        projectId: "bajajfinservproject",
+
+        storageBucket: "bajajfinservproject.appspot.com",
+
+        messagingSenderId: "495269722448",
+
+        appId: "1:495269722448:web:3e90f6354c8cbba8ec9455",
+
+        measurementId: "G-JTZE2C2FVG",
+      };
+
+      // Initialize Firebase
+
+      const app = initializeApp(firebaseConfig);
+
+      const analytics = getAnalytics(app);
+    </script>
+
+    <script>
+      let fetchedData = {};
+
+      function submitJson() {
+        const jsonInput = document.getElementById("json-input").value.trim();
+        const errorMessage = document.getElementById("error-message");
+        const dropdownContainer = document.getElementById("dropdown-container");
+        const resultDiv = document.getElementById("result");
+
+        // Clear previous results and error message
+        errorMessage.textContent = "";
+        resultDiv.textContent = "";
+
+        // Check if the input is empty
+        if (jsonInput === "") {
+          errorMessage.textContent =
+            "Input cannot be empty. Please enter valid JSON.";
+          return;
+        }
+
+        try {
+          const jsonData = JSON.parse(jsonInput);
+
+          if (!jsonData.data || !Array.isArray(jsonData.data)) {
+            throw new Error(
+              'Invalid JSON format: "data" field must be an array.'
+            );
+          }
+
+          fetch("http://127.0.0.1:8000/bfhl/", {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+            },
+            body: JSON.stringify(jsonData),
+          })
+            .then((response) => response.json())
+            .then((data) => {
+              console.log("Received data:", data); // Log the response data
+              fetchedData = data; // Store the response data
+              dropdownContainer.style.display = "block";
+            })
+            .catch((error) => {
+              console.error("Error fetching the response:", error);
+              errorMessage.textContent =
+                "Error fetching the response: " + error.message;
+            });
+        } catch (error) {
+          console.error("Invalid JSON:", error.message);
+          errorMessage.textContent = "Invalid JSON: " + error.message;
+        }
+      }
+
+      function filterResults() {
+        const resultDiv = document.getElementById("result");
+        const selectedOptions = Array.from(
+          document.getElementById("filter-dropdown").selectedOptions
+        ).map((option) => option.value);
+
+        // Clear previous results
+        resultDiv.textContent = "";
+
+        // Combine and display the filtered results based on selections
+        selectedOptions.forEach((option) => {
+          if (option === "numbers" && fetchedData.numbers) {
+            resultDiv.innerHTML += `<p><strong>Numbers:</strong> ${JSON.stringify(
+              fetchedData.numbers
+            )}</p>`;
+          }
+          if (option === "alphabets" && fetchedData.alphabets) {
+            resultDiv.innerHTML += `<p><strong>Alphabets:</strong> ${JSON.stringify(
+              fetchedData.alphabets
+            )}</p>`;
+          }
+          if (
+            option === "highest_lowercase_alphabet" &&
+            fetchedData.highest_lowercase_alphabet
+          ) {
+            resultDiv.innerHTML += `<p><strong>Highest Lowercase Alphabet:</strong> ${JSON.stringify(
+              fetchedData.highest_lowercase_alphabet
+            )}</p>`;
+          }
+        });
+      }
+    </script>
+  </body>
+</html>
